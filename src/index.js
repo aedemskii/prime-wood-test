@@ -4,6 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const body = document.getElementsByTagName('body')[0];
     const container = document.getElementById('container');
     const dummyDraggable = document.getElementById('dummy-draggable');
+    const touchDevice = isTouchDevice();
+    const dragStartEvent = touchDevice ? 'touchstart' : 'mousedown';
+    const dragEndEvent = touchDevice ? 'touchend' : 'mouseup';
+    const dragMoveEvent = touchDevice ? 'touchmove' : 'mousemove';
 
     const fruits = [
         'Авокадо',
@@ -41,17 +45,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function dragSubscribe(draggables) {
         draggables.forEach(draggable => {
-            draggable.addEventListener('mousedown', (e) => {
+            draggable.addEventListener(dragStartEvent, (e) => {
+                e.preventDefault();
                 dragging = draggable;
                 setDummyDraggable(draggable, e);
                 draggable.classList.add('dragging');
-                body.addEventListener('mousemove', handleDrag);
+                body.addEventListener(dragMoveEvent, handleDrag);
             });
         });
-        body.addEventListener('mouseup', () => {
+        body.addEventListener(dragEndEvent, () => {
+            if (dragging == null) {
+                return;
+            }
             dragging.classList.remove('dragging');
             dragging = null;
-            body.removeEventListener('mousemove', handleDrag);
+            body.removeEventListener(dragMoveEvent, handleDrag);
             dummyDraggable.style.display = 'none';
             dummyDraggable.innerHTML = '';
             reIndexItems();
@@ -61,25 +69,26 @@ document.addEventListener('DOMContentLoaded', () => {
     function setDummyDraggable(draggable, e) {
         const draggableClone = draggable.cloneNode(true);
         const dragginBox = draggable.getBoundingClientRect();
-        startPosOffsetX = e.clientX - dragginBox.left;
-        startPosOffsetY = e.clientY - dragginBox.top;
+        const { x, y } = getPos(e);
+        startPosOffsetX = x - dragginBox.left;
+        startPosOffsetY = y - dragginBox.top;
         dummyDraggable.appendChild(draggableClone);
         Object.assign(dummyDraggable.style, {
             display: 'block',
-            top: `${e.clientY - startPosOffsetY}px`,
-            left: `${e.clientX - startPosOffsetX}px`,
+            top: `${y - startPosOffsetY}px`,
+            left: `${x - startPosOffsetX}px`,
             width: `${dragginBox.width}px`,
             height: `${dragginBox.height}px`,
         });
     };
 
     function handleDrag(e) {
-        e.preventDefault();
+        const { x, y } = getPos(e);
         Object.assign(dummyDraggable.style, {
-            top: `${e.clientY - startPosOffsetY}px`,
-            left: `${e.clientX - startPosOffsetX}px`,
+            top: `${y - startPosOffsetY}px`,
+            left: `${x - startPosOffsetX}px`,
         });
-        const afterElement = getDragAfterElement(container, e.clientY);
+        const afterElement = getDragAfterElement(container, y);
         if (dragging == null) {
             return;
         }
@@ -109,6 +118,25 @@ document.addEventListener('DOMContentLoaded', () => {
         items.forEach((item, index) => {
             item.querySelector('.number').textContent = index + 1;
         });
-    }
+    };
+
+    function isTouchDevice() {
+        return (('ontouchstart' in window) ||
+            (navigator.maxTouchPoints > 0) ||
+            (navigator.msMaxTouchPoints > 0));
+    };
+
+    function getPos(e) {
+        let x = 0;
+        let y = 0;
+        if (touchDevice) {
+            x = e.touches[0].clientX;
+            y = e.touches[0].clientY;
+        } else {
+            x = e.clientX;
+            y = e.clientY;
+        }
+        return { x, y };
+    };
 });
 

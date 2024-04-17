@@ -19,6 +19,7 @@ body {
 
 .draggable {
   width: 600px;
+  max-width: 60vw;
   padding: 1rem;
   background-color: white;
   border-top: 1px solid rgb(30, 30, 30);
